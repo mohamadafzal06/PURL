@@ -1,9 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"math/rand"
+	"net/http"
 	"time"
+
+	"github.com/labstack/echo/v4"
 )
 
 var db = make(map[string]string)
@@ -30,8 +32,10 @@ func getLongUrl(key string) string {
 }
 
 func main() {
-	url := "google.com"
-	surl := shorten(url)
-	lurl := getLongUrl(surl)
-	fmt.Println(url, surl, lurl)
+	e := echo.New()
+	e.GET("/health-check", func(c echo.Context) error {
+		return c.String(http.StatusOK, "hello world")
+	})
+
+	e.Logger.Fatal(e.Start(":8088"))
 }
