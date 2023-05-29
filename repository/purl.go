@@ -1,8 +1,12 @@
 package repository
 
-import "context"
+import (
+	"context"
+
+	"github.com/mohamadafzal06/purl/entity"
+)
 
 type Purl interface {
-	GetLongURL(ctx context.Context, surl string) (string, error)
-	SetShortURL(ctx context.Context, lurl string) (string, error)
+	GetLongURL(ctx context.Context, surl entity.URL) (entity.URL, error)
+	SetShortURL(ctx context.Context, lurl entity.URL) (entity.URL, error)
 }
