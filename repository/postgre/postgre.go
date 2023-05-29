@@ -54,3 +54,35 @@ func (p *Postgres) SetShortURL(ctx context.Context, lurl entity.URL) (entity.URL
 	// TODO: change the return value witht another entity.URL
 	return lurl, nil
 }
+
+func (p *Postgres) IsURLExist(ctx context.Context, url string) (entity.URL, error) {
+	row, err := p.db.QueryContext(ctx, "select key from urls where url=$1", url)
+	if err != nil {
+		return entity.URL{}, fmt.Errorf("cannot get key by this url: %w\n", err)
+	}
+
+	var res entity.URL
+
+	err = row.Scan(&res)
+	if err != nil {
+		return entity.URL{}, fmt.Errorf("error while scanning the result: %w\n", err)
+	}
+
+	return res, nil
+}
+
+func (p *Postgres) IsKeyExist(ctx context.Context, key string) (entity.URL, error) {
+	row, err := p.db.QueryContext(ctx, "select url from urls where key=$1", key)
+	if err != nil {
+		return entity.URL{}, fmt.Errorf("cannot get url by this key: %w\n", err)
+	}
+
+	var res entity.URL
+
+	err = row.Scan(&res)
+	if err != nil {
+		return entity.URL{}, fmt.Errorf("error while scanning the result: %w\n", err)
+	}
+
+	return res, nil
+}
