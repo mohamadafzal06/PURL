@@ -1,15 +1,29 @@
 version: '3.8'
+
 services:
-  db:
-    image: docker.arvancloud.ir/postgres
-    restart: always
+  postgres:
+    container_name: purl_postgres
+    image: docker.arvancloud.ir/postgres:15.3
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=${PURL_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${PURL_POSTGRES_PW}
+      - POSTGRES_DB=${PURL_POSTGRES_DB} #optional (specify default database instead of $POSTGRES_DB)
     ports:
-      - '5432:5432'
+      - "5432:5432"
     volumes: 
       - db:/var/lib/postgresql/data
+    restart: always
+
+  pgadmin:
+    container_name: purl_pgadmin
+    image: docker.arvancloud.ir/dpage/pgadmin4:latest
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PURL_PGADMIN_MAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PURL_PGADMIN_PW}
+    ports:
+      - "5050:80"
+    restart: always
+
 volumes:
   db:
     driver: local
