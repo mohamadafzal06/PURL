@@ -1,15 +1,15 @@
 package param
 
 type ShortRequest struct {
-	LongURL string
+	LongURL string `json:"long_url"`
 }
 type ShortResponse struct {
-	ShortURL string
+	ShortURL string `json:"short_url"`
 }
 
 type LongRequest struct {
-	ShortURL string
+	ShortURL string `json:"short_url"`
 }
 type LongResponse struct {
-	LongURL string
+	LongURL string `json:"long_url"`
 }
