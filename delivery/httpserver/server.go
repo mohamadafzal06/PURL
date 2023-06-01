@@ -9,16 +9,16 @@ import (
 	"github.com/mohamadafzal06/purl/param"
 )
 
-type Service interface {
+type PURLService interface {
 	Short(ctx context.Context, sReq param.ShortRequest) (param.ShortResponse, error)
 	GetLong(ctx context.Context, surl param.LongRequest) (param.LongResponse, error)
 }
 
 type Server struct {
-	service Service
+	service PURLService
 }
 
-func New(srv Service) Server {
+func New(srv PURLService) Server {
 	return Server{
 		service: srv,
 	}
@@ -27,25 +27,24 @@ func New(srv Service) Server {
 func (s Server) Short(c echo.Context) error {
 	if c.Request().Method != http.MethodPost {
 		return echo.NewHTTPError(http.StatusBadRequest, echo.Map{"message": "Only except POST method"})
-
 	}
 
-	var resPram param.ShortRequest
+	var reqPram param.ShortRequest
 
-	err := c.Bind(&resPram)
+	err := c.Bind(&reqPram)
 	if err != nil {
-		log.Errorf("cannot bind the Body request into requeste param: %v\n", err)
-		return c.JSON(http.StatusBadRequest, echo.Map{"message": "Only except POST method"})
+		log.Errorf("cannot bind the Body request into request param: %v\n", err)
+		return c.JSON(http.StatusBadRequest, echo.Map{"message": "the requsted url for shortning has problem"})
 	}
 
-	sResp, err := s.service.Short(c.Request().Context(), resPram)
+	sResp, err := s.service.Short(c.Request().Context(), reqPram)
 	if err != nil {
 		// TODO: check other possible error
 		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "cannot short the url"})
 	}
+
 	// TODO: check better response format
 	return c.JSON(http.StatusOK, echo.Map{"message": sResp})
-
 }
 
 func (s Server) Long(c echo.Context) error {

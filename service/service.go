@@ -21,11 +21,11 @@ func New(repo repository.Purl, sFunc func(int) string) Service {
 	}
 }
 
-func (s *Service) Short(ctx context.Context, sReq param.ShortRequest) (param.ShortResponse, error) {
+func (s Service) Short(ctx context.Context, sReq param.ShortRequest) (param.ShortResponse, error) {
 	var response param.ShortResponse
 	// check that the request is in db or not
-	url := sReq.LongURL
-	retrievURL, err := s.repo.IsURLExist(ctx, url)
+	reqUrl := sReq.LongURL
+	retrievURL, err := s.repo.IsURLInDB(ctx, reqUrl)
 	if err != nil {
 		//TODO: check the error form repository layer
 		return param.ShortResponse{}, fmt.Errorf("error while checking the url is in db or not: %w\n", err)
@@ -56,11 +56,11 @@ func (s *Service) Short(ctx context.Context, sReq param.ShortRequest) (param.Sho
 	return response, nil
 }
 
-func (s *Service) GetLong(ctx context.Context, surl param.LongRequest) (param.LongResponse, error) {
+func (s Service) GetLong(ctx context.Context, surl param.LongRequest) (param.LongResponse, error) {
 	var response param.LongResponse
 	// get the long-format from db
 	reqKey := surl.ShortURL
-	retrievURL, err := s.repo.IsKeyExist(ctx, reqKey)
+	retrievURL, err := s.repo.IsKeyInDB(ctx, reqKey)
 	if err != nil {
 		//TODO: check the error form repository layer
 		return param.LongResponse{}, fmt.Errorf("error while checking the key is in db or not: %w\n", err)
