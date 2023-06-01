@@ -14,8 +14,8 @@ type Service struct {
 	shortenFunc func(int) string
 }
 
-func New(repo repository.Purl, sFunc func(int) string) *Service {
-	return &Service{
+func New(repo repository.Purl, sFunc func(int) string) Service {
+	return Service{
 		repo:        repo,
 		shortenFunc: sFunc,
 	}
