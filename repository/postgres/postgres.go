@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
+	"os"
 
 	_ "github.com/lib/pq"
 	"github.com/mohamadafzal06/purl/entity"
@@ -13,16 +15,34 @@ type Postgres struct {
 	db *sql.DB
 }
 
-func NewDB(username, password, host, port, dbname string) (*Postgres, error) {
-	connectionStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", username, password, host, port, dbname)
+func NewDB(username, password, host, port, dbname string) (Postgres, error) {
+	connectionStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
+		os.Getenv("PURL_POSTGRES_USER"),
+		os.Getenv("PURL_POSTGRES_PW"),
+		os.Getenv("PURL_POSTGRES_HOST"),
+		os.Getenv("PURL_POSTGRES_PORT"),
+		os.Getenv("PURL_POSTGRES_DBNAME"),
+	)
 	db, err := sql.Open("postgres", connectionStr)
 	if err != nil {
-		return nil, err
+		return Postgres{}, err
 	}
-	return &Postgres{db}, nil
+	return Postgres{db}, nil
 }
 
-func (p *Postgres) GetLongURL(ctx context.Context, surl entity.URL) (entity.URL, error) {
+func (p Postgres) Ping() error {
+	err := p.db.Ping()
+	if err != nil {
+		log.Fatalf("cannot ping the database: %v\n", err)
+		return fmt.Errorf("cannot ping the database: %v\n", err)
+	}
+
+	log.Printf("\nPinging DB successfully...\n")
+
+	return nil
+}
+
+func (p Postgres) GetLongURL(ctx context.Context, surl entity.URL) (entity.URL, error) {
 	row := p.db.QueryRowContext(ctx, "select url from ulrs where key=$1", surl.Key)
 	if err := row.Err(); err != nil {
 		// TODO: change the return value witht another entity.URL
@@ -38,7 +58,7 @@ func (p *Postgres) GetLongURL(ctx context.Context, surl entity.URL) (entity.URL,
 	return lurl, nil
 }
 
-func (p *Postgres) SetShortURL(ctx context.Context, lurl entity.URL) (entity.URL, error) {
+func (p Postgres) SetShortURL(ctx context.Context, lurl entity.URL) (entity.URL, error) {
 	res, err := p.db.ExecContext(ctx, "insert into ulrs (key, url) values ($1, $2)", lurl.Key, lurl.LURL)
 	if err != nil {
 		// TODO: change the return value witht another entity.URL
@@ -55,7 +75,7 @@ func (p *Postgres) SetShortURL(ctx context.Context, lurl entity.URL) (entity.URL
 	return lurl, nil
 }
 
-func (p *Postgres) IsURLExist(ctx context.Context, url string) (entity.URL, error) {
+func (p Postgres) IsURLInDB(ctx context.Context, url string) (entity.URL, error) {
 	row, err := p.db.QueryContext(ctx, "select key from urls where url=$1", url)
 	if err != nil {
 		return entity.URL{}, fmt.Errorf("cannot get key by this url: %w\n", err)
@@ -71,7 +91,7 @@ func (p *Postgres) IsURLExist(ctx context.Context, url string) (entity.URL, erro
 	return res, nil
 }
 
-func (p *Postgres) IsKeyExist(ctx context.Context, key string) (entity.URL, error) {
+func (p Postgres) IsKeyInDB(ctx context.Context, key string) (entity.URL, error) {
 	row, err := p.db.QueryContext(ctx, "select url from urls where key=$1", key)
 	if err != nil {
 		return entity.URL{}, fmt.Errorf("cannot get url by this key: %w\n", err)
