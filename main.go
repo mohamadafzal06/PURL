@@ -6,8 +6,9 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
+	_ "github.com/lib/pq"
 	"github.com/mohamadafzal06/purl/delivery/httpserver"
-	randomgenerator "github.com/mohamadafzal06/purl/pkg/random_generator"
+	"github.com/mohamadafzal06/purl/pkg/randomstring"
 	"github.com/mohamadafzal06/purl/repository/postgres"
 	"github.com/mohamadafzal06/purl/service"
 )
@@ -19,18 +20,18 @@ func main() {
 		log.Fatal("cannot initialize repository")
 	}
 
-	err = repo.Ping()
-	if err != nil {
-		log.Fatal("cannot ping the database")
+	rg := randomstring.RandomGenerator{
+		Length: 6,
 	}
 
-	srv := service.New(repo, randomgenerator.RandStringRunes)
+	srv := service.New(repo, rg)
 
 	app := echo.New()
 
 	httpserver.NewHealth().Register(app.Group(""))
+
 	// TODO: check for implementation of interface
-	httpserver.New(srv).Register(app.Group("/api"))
+	httpserver.NewServer(srv).Register(app.Group("/api"))
 
 	if err := app.Start(":1996"); !errors.Is(err, http.ErrServerClosed) {
 		log.Println("echo initialization failed")

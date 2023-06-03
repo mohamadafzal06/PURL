@@ -18,7 +18,7 @@ type Server struct {
 	service PURLService
 }
 
-func New(srv PURLService) Server {
+func NewServer(srv PURLService) Server {
 	return Server{
 		service: srv,
 	}
@@ -29,15 +29,15 @@ func (s Server) Short(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, echo.Map{"message": "Only except POST method"})
 	}
 
-	var reqPram param.ShortRequest
+	reqPram := new(param.ShortRequest)
 
-	err := c.Bind(&reqPram)
+	err := c.Bind(reqPram)
 	if err != nil {
 		log.Errorf("cannot bind the Body request into request param: %v\n", err)
 		return c.JSON(http.StatusBadRequest, echo.Map{"message": "the requsted url for shortning has problem"})
 	}
 
-	sResp, err := s.service.Short(c.Request().Context(), reqPram)
+	sResp, err := s.service.Short(c.Request().Context(), *reqPram)
 	if err != nil {
 		// TODO: check other possible error
 		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "cannot short the url"})
@@ -54,7 +54,7 @@ func (s Server) Long(c echo.Context) error {
 
 	key := c.QueryParam("key")
 	resPram := param.LongRequest{
-		ShortURL: key,
+		Key: key,
 	}
 
 	sResp, err := s.service.GetLong(c.Request().Context(), resPram)

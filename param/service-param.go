@@ -4,11 +4,11 @@ type ShortRequest struct {
 	LongURL string `json:"long_url"`
 }
 type ShortResponse struct {
-	ShortURL string `json:"short_url"`
+	Key string `json:"key"`
 }
 
 type LongRequest struct {
-	ShortURL string `json:"short_url"`
+	Key string `json:"key"`
 }
 type LongResponse struct {
 	LongURL string `json:"long_url"`
