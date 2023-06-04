@@ -24,6 +24,18 @@ services:
       - "5050:80"
     restart: always
 
+  redis:
+    container_name: purl_redis 
+    image: docker.arvancloud.ir/bitnami/redis:6.2
+    restart: always
+    ports:
+      - '6380:6379'
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    volumes:
+      - dbredis-data:/data
+
 volumes:
   db:
     driver: local
+  dbredis-data:
