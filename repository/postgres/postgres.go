@@ -3,11 +3,24 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 
 	_ "github.com/lib/pq"
 	"github.com/mohamadafzal06/purl/entity"
+)
+
+var (
+	ErrDBInitialization          = errors.New("Cannot initialize a connection to database.")
+	ErrDBPing                    = errors.New("Cannot ping the database.")
+	ErrKeyDoesNotExist           = errors.New("The Key does not exist.")
+	ErrURLDoesNotExist           = errors.New("The URL does not exist.")
+	ErrDuplicatedKey             = errors.New("This Key is already exist.")
+	ErrKeyIsWrong                = errors.New("Cannot retrieve URL by this key.")
+	ErrDBScanning                = errors.New("Cannot scanning the result of the query.")
+	ErrInsertURLFailed           = errors.New("Cannot insert this (key, url) into db.")
+	ErrRetireveInsertedURLFailed = errors.New("Cannot retrieve (key, url) from DB.")
 )
 
 type Postgres struct {
@@ -18,10 +31,15 @@ func NewDB(username, password, host, port, dbname string) (*Postgres, error) {
 	connectionStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		username, password, host, port, dbname,
 	)
+
 	db, err := sql.Open("postgres", connectionStr)
 	if err != nil {
-		return nil, fmt.Errorf("cannot initialize a connection to database: %w\n", err)
+		log.Fatalf("cannot initialize a connection to database: %v\n", err)
+		return nil, ErrDBInitialization
 	}
+
+	log.Printf("\nConnect to DB successfully...\n")
+
 	pg := new(Postgres)
 	pg.db = db
 	return pg, nil
@@ -35,7 +53,7 @@ func (p *Postgres) Ping() error {
 	err := p.db.Ping()
 	if err != nil {
 		log.Fatalf("cannot ping the database: %v\n", err)
-		return fmt.Errorf("cannot ping the database: %v\n", err)
+		return ErrDBPing
 	}
 
 	log.Printf("\nPinging DB successfully...\n")
@@ -47,14 +65,14 @@ func (p *Postgres) GetLongURL(ctx context.Context, key string) (string, error) {
 	row := p.db.QueryRowContext(ctx, "SELECT url FROM urls WHERE key=$1", key)
 	if err := row.Err(); err != nil {
 		// TODO: change the return value witht another entity.URL
-		return "", fmt.Errorf("cannot retrieve url by this key: %w\n", err)
+		return "", ErrKeyIsWrong
 	}
 
 	var url string
 	err := row.Scan(&url)
 	if err != nil {
 		// TODO: change the return value witht another entity.URL
-		return "", fmt.Errorf("error while scanning: %w\n", err)
+		return "", ErrDBScanning
 	}
 	return url, nil
 }
@@ -63,12 +81,12 @@ func (p *Postgres) SetShortURL(ctx context.Context, longUrl entity.URL) (uint64,
 	_, err := p.db.ExecContext(ctx, "INSERT INTO urls (key, url) VALUES($1, $2);", longUrl.Key, longUrl.LongURL)
 	if err != nil {
 		// TODO: change the return value witht another entity.URL
-		return 0, fmt.Errorf("cannot set this url into db: %w\n", err)
+		return 0, ErrInsertURLFailed
 	}
 
 	row := p.db.QueryRowContext(ctx, "SELECT * FROM urls WHERE key=$1;", longUrl.Key)
 	if row.Err() != nil {
-		return 0, fmt.Errorf("cannot retrieve the inserted url: %w\n", err)
+		return 0, ErrRetireveInsertedURLFailed
 	}
 	var insertedUrl struct {
 		id  int64
@@ -76,7 +94,7 @@ func (p *Postgres) SetShortURL(ctx context.Context, longUrl entity.URL) (uint64,
 		url string
 	}
 	if err = row.Scan(&insertedUrl.id, &insertedUrl.key, &insertedUrl.url); err != nil {
-		return 0, fmt.Errorf("scanning the inserted url failed: %w\n", err)
+		return 0, ErrDBScanning
 	}
 
 	insertedID := uint64(insertedUrl.id)
@@ -93,7 +111,7 @@ func (p *Postgres) IsURLInDB(ctx context.Context, url string) (bool, string, err
 	err := row.Scan(&key)
 
 	if err != nil {
-		return false, "", fmt.Errorf("error while scanning the result: %w\n", err)
+		return false, "", ErrURLDoesNotExist
 	}
 
 	return true, key, nil
@@ -106,7 +124,7 @@ func (p *Postgres) IsKeyInDB(ctx context.Context, key string) (bool, string, err
 
 	err := row.Scan(&url)
 	if err != nil {
-		return false, "", fmt.Errorf("error while scanning the result: %w\n", err)
+		return false, "", ErrKeyDoesNotExist
 	}
 
 	return true, url, nil
