@@ -1,18 +1,16 @@
 package param
 
-import "time"
-
 type ShortRequest struct {
-	URL    string        `json:"url"`
-	Expiry time.Duration `json:"expiry"`
+	URL    string `json:"url"`
+	Expiry string `json:"expiry"`
 }
 
 type ShortResponse struct {
-	URL             string        `json:"url"`
-	Key             string        `json:"key"`
-	Expiry          time.Duration `json:"expiry"`
-	XRateRemaining  int           `json:"rate_limit"`
-	XRateLimitReset time.Duration `json:"rate_limit_reset"`
+	URL             string `json:"url"`
+	Key             string `json:"key"`
+	Expiry          string `json:"expiry"`
+	XRateRemaining  int    `json:"rate_limit"`
+	XRateLimitReset string `json:"rate_limit_reset"`
 }
 
 type LongRequest struct {

@@ -12,19 +12,25 @@ import (
 type PURLService interface {
 	Short(ctx context.Context, sReq param.ShortRequest) (param.ShortResponse, error)
 	GetLong(ctx context.Context, surl param.LongRequest) (param.LongResponse, error)
+	// TODO: the service method for Info handler
+	//GetLongInfo(ctx context.Context, surl param.LongRequest) (param.LongResponse, error)
 }
 
-type Server struct {
+type Handler struct {
+	schema  string
+	host    string
 	service PURLService
 }
 
-func NewServer(srv PURLService) Server {
-	return Server{
+func NewServer(schema, host string, srv PURLService) Handler {
+	return Handler{
+		schema:  schema,
+		host:    host,
 		service: srv,
 	}
 }
 
-func (s Server) Short(c echo.Context) error {
+func (h Handler) Short(c echo.Context) error {
 	if c.Request().Method != http.MethodPost {
 		return echo.NewHTTPError(http.StatusBadRequest, echo.Map{"message": "Only except POST method"})
 	}
@@ -37,7 +43,7 @@ func (s Server) Short(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, echo.Map{"message": "the requsted url for shortning has problem"})
 	}
 
-	sResp, err := s.service.Short(c.Request().Context(), *reqPram)
+	sResp, err := h.service.Short(c.Request().Context(), *reqPram)
 	if err != nil {
 		// TODO: check other possible error
 		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "cannot short the url"})
@@ -47,17 +53,17 @@ func (s Server) Short(c echo.Context) error {
 	return c.JSON(http.StatusOK, echo.Map{"message": sResp})
 }
 
-func (s Server) Long(c echo.Context) error {
+func (h Handler) Long(c echo.Context) error {
 	if c.Request().Method != http.MethodGet {
 		return c.JSON(http.StatusBadRequest, echo.Map{"message": "Only except GET method"})
 	}
 
-	key := c.QueryParam("key")
+	key := c.Param("key")
 	resPram := param.LongRequest{
 		Key: key,
 	}
 
-	sResp, err := s.service.GetLong(c.Request().Context(), resPram)
+	sResp, err := h.service.GetLong(c.Request().Context(), resPram)
 	if err != nil {
 		// TODO: check other possible error
 		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "cannot get the original url"})
@@ -67,7 +73,12 @@ func (s Server) Long(c echo.Context) error {
 
 }
 
-func (s Server) Register(g *echo.Group) {
-	g.GET("/long", s.Long)
-	g.POST("/short", s.Short)
+func (h Handler) Info(c echo.Context) error {
+	return nil
+}
+
+func (h Handler) Register(g *echo.Group) {
+	g.POST("/short", h.Short)
+	g.GET("/long/:key", h.Long)
+	g.GET("/long/:key/info", h.Info)
 }
