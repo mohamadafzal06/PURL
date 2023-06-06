@@ -6,11 +6,7 @@ type ShortRequest struct {
 }
 
 type ShortResponse struct {
-	URL             string `json:"url"`
-	Key             string `json:"key"`
-	Expiry          string `json:"expiry"`
-	XRateRemaining  int    `json:"rate_limit"`
-	XRateLimitReset string `json:"rate_limit_reset"`
+	Key string `json:"key"`
 }
 
 type LongRequest struct {
@@ -18,4 +14,13 @@ type LongRequest struct {
 }
 type LongResponse struct {
 	LongURL string `json:"long_url"`
+}
+
+type LongInfoRequest struct {
+	Key string `json:"key"`
+}
+type LongInfoResponse struct {
+	LongURL string `json:"long_url"`
+	Expiry  string `json:"expiry"`
+	Visits  string `json:"visits"`
 }
