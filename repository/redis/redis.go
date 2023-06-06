@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"math/rand"
-	"strconv"
 	"time"
 
 	"github.com/mohamadafzal06/purl/entity"
@@ -24,6 +22,15 @@ type Config struct {
 
 type Redis struct {
 	client *redis.Client
+}
+
+func (r *Redis) Close(ctx context.Context) error {
+	err := r.client.Close()
+	if err != nil {
+		return fmt.Errorf("cannot close connection: %w\n", err)
+	}
+
+	return nil
 }
 
 func New(cf Config) Redis {
@@ -55,51 +62,54 @@ func (r *Redis) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (r *Redis) isIDInDB(ctx context.Context, id uint64) bool {
-
-	exists, err := r.client.Do(ctx, "EXISTS", "Shortner:"+strconv.FormatUint(id, 10)).Result()
+func (r *Redis) isIDInDB(ctx context.Context, key string) bool {
+	exists, err := r.client.Do(ctx, "EXISTS", key).Result()
 	if err != nil {
 		// TODO: log the Error
 		return false
 	}
+	res, ok := exists.(int)
+	if ok {
+		if res > 0 {
+			return true
+		}
+	}
 
 	// TODO: check the result
-	return exists.(bool)
+	return false
 }
 
 func (r *Redis) Save(ctx context.Context, url string, expires time.Time) (string, error) {
-	var id uint64
+	var key string
+	rg := randomstring.RandomGenerator{
+		Length: 6,
+	}
 
-	for used := true; used; used = r.isIDInDB(ctx, id) {
-		id = rand.Uint64()
+	key = rg.RandomString()
+	if r.isIDInDB(ctx, key) {
+		key = rg.RandomString()
 	}
 
 	// TODO: set expires.Format properly(dont hardcod)
-	shortLink := entity.URL{id, url, expires.Format("2006-01-02 15:04:05.728046 +0300 EEST"), 0}
+	shortLink := entity.URL{key, url, expires.Format("2006-01-02 15:04:05.728046 +0300 EEST"), 0}
 
 	// TODO: command is not correct
-	_, err := r.client.Do(ctx, "HMSET", "Shortener:"+strconv.FormatUint(id, 10), "url", shortLink.OriginalURL, "expires", shortLink.Expires, "visites", shortLink.Visits).Result()
+	_, err := r.client.Do(ctx, "HMSET", shortLink.Key, "url", shortLink.OriginalURL, "expires", shortLink.Expires, "visites", shortLink.Visits).Result()
 	if err != nil {
 		return "", err
 	}
 
-	_, err = r.client.Do(ctx, "EXPIREAT", "Shortener:"+strconv.FormatUint(id, 10), expires.Unix()).Result()
+	_, err = r.client.Do(ctx, "EXPIREAT", shortLink.Key, expires.Unix()).Result()
 	if err != nil {
 		return "", err
 	}
 
-	return randomstring.Encode(id), nil
+	return shortLink.Key, nil
 }
 
-func (r *Redis) Load(ctx context.Context, code string) (string, error) {
+func (r *Redis) Load(ctx context.Context, key string) (string, error) {
 
-	decodedId, err := randomstring.Decode(code)
-	if err != nil {
-		return "", err
-	}
-
-	//urlString, err := redisClient.String(conn.Do("HGET", "Shortener:"+strconv.FormatUint(decodedId, 10), "url"))
-	url, err := r.client.Do(ctx, "HGET", "Shortener:"+strconv.FormatUint(decodedId, 10), "url").Result()
+	url, err := r.client.Do(ctx, "HGET", key, "url").Result()
 	if err != nil {
 		return "", err
 	}
@@ -112,33 +122,32 @@ func (r *Redis) Load(ctx context.Context, code string) (string, error) {
 		}
 	}
 
-	_, err = r.client.Do(ctx, "HINCRBY", "Shortener:"+strconv.FormatUint(decodedId, 10), "visits", 1).Result()
+	_, err = r.client.Do(ctx, "HINCRBY", key, "visits", 1).Result()
 
 	return urlString, nil
 }
-func (r *Redis) isAvailable(ctx context.Context, id uint64) bool {
-	exists, err := r.client.Do(ctx, "EXISTS", "Shortener:"+strconv.FormatUint(id, 10)).Result()
+func (r *Redis) isAvailable(ctx context.Context, key string) bool {
+	exists, err := r.client.Do(ctx, "EXISTS", key).Result()
 	if err != nil {
 		return false
 	}
 
 	// TODO: rest of the code should be refactored
-	existsBool, ok := exists.(bool)
+	res, ok := exists.(int)
 	if ok {
-		return existsBool
+		if res > 0 {
+			return true
+		}
+		return false
 	}
 	return false
 }
 
-func (r *Redis) LoadInfo(ctx context.Context, code string) (*entity.URL, error) {
-
-	decodedId, err := randomstring.Decode(code)
-	if err != nil {
-		return nil, err
-	}
+func (r *Redis) LoadInfo(ctx context.Context, key string) (*entity.URL, error) {
 
 	var shortLink entity.URL
-	err = r.client.HGetAll(ctx, "Shortener:"+strconv.FormatUint(decodedId, 10)).Scan(shortLink)
+	// TODO: is binding all field of shortLink, or key is ignored
+	err := r.client.HGetAll(ctx, key).Scan(&shortLink)
 
 	if err != nil {
 		return nil, fmt.Errorf("the key is not exitst: %w\n", err)

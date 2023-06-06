@@ -5,6 +5,8 @@ import (
 	"math"
 	"os"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 const (
@@ -12,11 +14,16 @@ const (
 	length   = uint64(len(alphabet))
 )
 
-// type RandomGenerator struct {
-// 	Length int
-// }
+type RandomGenerator struct {
+	Length int
+}
 
-func Encode(number uint64) string {
+func (rg RandomGenerator) RandomString() string {
+	uuidStr := uuid.New().String()[:rg.Length]
+	return uuidStr
+}
+
+func (rg RandomGenerator) Encode(number uint64) string {
 	var encodedBuilder strings.Builder
 	encodedBuilder.Grow(11)
 
@@ -27,7 +34,7 @@ func Encode(number uint64) string {
 	return encodedBuilder.String()
 }
 
-func Decode(encoded string) (uint64, error) {
+func (rg RandomGenerator) Decode(encoded string) (uint64, error) {
 	var number uint64
 
 	for i, symbol := range encoded {
