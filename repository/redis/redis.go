@@ -62,7 +62,7 @@ func (r *Redis) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (r *Redis) isIDInDB(ctx context.Context, key string) bool {
+func (r *Redis) isKeyInDB(ctx context.Context, key string) bool {
 	exists, err := r.client.Do(ctx, "EXISTS", key).Result()
 	if err != nil {
 		// TODO: log the Error
@@ -86,7 +86,7 @@ func (r *Redis) Save(ctx context.Context, url string, expires time.Time) (string
 	}
 
 	key = rg.RandomString()
-	if r.isIDInDB(ctx, key) {
+	if r.isKeyInDB(ctx, key) {
 		key = rg.RandomString()
 	}
 

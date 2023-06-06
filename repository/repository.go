@@ -10,6 +10,6 @@ import (
 type Repository interface {
 	Save(context.Context, string, time.Time) (string, error)
 	Load(context.Context, string) (string, error)
-	LoadInfo(context.Context, string) (*entity.URL, error)
+	LoadInfo(context.Context, string) (entity.URL, error)
 	Close(context.Context) error
 }

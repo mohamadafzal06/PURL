@@ -9,20 +9,19 @@ import (
 	"github.com/mohamadafzal06/purl/param"
 )
 
-type PURLService interface {
+type PurlService interface {
 	Short(ctx context.Context, sReq param.ShortRequest) (param.ShortResponse, error)
 	GetLong(ctx context.Context, surl param.LongRequest) (param.LongResponse, error)
-	// TODO: the service method for Info handler
-	//GetLongInfo(ctx context.Context, surl param.LongRequest) (param.LongResponse, error)
+	GetLongInfo(ctx context.Context, surl param.LongRequest) (param.LongResponse, error)
 }
 
 type Handler struct {
 	schema  string
 	host    string
-	service PURLService
+	service PurlService
 }
 
-func NewServer(schema, host string, srv PURLService) Handler {
+func NewServer(schema, host string, srv PurlService) Handler {
 	return Handler{
 		schema:  schema,
 		host:    host,
