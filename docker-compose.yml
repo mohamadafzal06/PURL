@@ -3,14 +3,14 @@ version: '3.8'
 services:
   redis:
     container_name: purl_redis 
-    image: docker.arvancloud.ir/bitnami/redis:6.2
+    image: docker.arvancloud.ir/redis:7
     restart: always
     ports:
       - '6380:6379'
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
     volumes:
-      - dbredis-data:/data
+      - redis-data:/data
 
 volumes:
-  dbredis-data:
+  redis-data:

@@ -24,15 +24,6 @@ type Redis struct {
 	client *redis.Client
 }
 
-func (r *Redis) Close(ctx context.Context) error {
-	err := r.client.Close()
-	if err != nil {
-		return fmt.Errorf("cannot close connection: %w\n", err)
-	}
-
-	return nil
-}
-
 func New(cf Config) Redis {
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%s:%d", cf.Host, cf.Port),
@@ -49,11 +40,11 @@ func New(cf Config) Redis {
 	return Redis{client: rdb}
 }
 
-func (r *Redis) Client() *redis.Client {
+func (r Redis) Client() *redis.Client {
 	return r.client
 }
 
-func (r *Redis) Ping(ctx context.Context) error {
+func (r Redis) Ping(ctx context.Context) error {
 	status := r.client.Ping(ctx)
 	if err := status.Err(); err != nil {
 		return fmt.Errorf("Pinging redis failed: %w\n", err)
@@ -62,52 +53,45 @@ func (r *Redis) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (r *Redis) isKeyInDB(ctx context.Context, key string) bool {
-	exists, err := r.client.Do(ctx, "EXISTS", key).Result()
-	if err != nil {
-		// TODO: log the Error
-		return false
-	}
-	res, ok := exists.(int)
-	if ok {
-		if res > 0 {
-			return true
-		}
-	}
-
-	// TODO: check the result
-	return false
-}
-
-func (r *Redis) Save(ctx context.Context, url string, expires time.Time) (string, error) {
+func (r Redis) Save(ctx context.Context, url string, expires int64) (string, error) {
 	var key string
 	rg := randomstring.RandomGenerator{
 		Length: 6,
 	}
 
 	key = rg.RandomString()
-	if r.isKeyInDB(ctx, key) {
-		key = rg.RandomString()
-	}
+	// ok, err := r.isKeyInDB(ctx, key)
+	// if err != nil {
+	// 	return "", fmt.Errorf("cannot check the key is in redis or not: %w\n", err)
+	// }
+	// if !ok {
+	// 	key = rg.RandomString()
+	// }
 
 	// TODO: set expires.Format properly(dont hardcod)
-	shortLink := entity.URL{key, url, expires.Format("2006-01-02 15:04:05.728046 +0300 EEST"), 0}
-
-	// TODO: command is not correct
-	_, err := r.client.Do(ctx, "HMSET", shortLink.Key, "url", shortLink.OriginalURL, "expires", shortLink.Expires, "visites", shortLink.Visits).Result()
-	if err != nil {
-		return "", err
+	shortLink := entity.URL{
+		Key:         key,
+		OriginalURL: url,
+		Expires:     expires,
+		Visits:      0,
 	}
 
-	_, err = r.client.Do(ctx, "EXPIREAT", shortLink.Key, expires.Unix()).Result()
+	// TODO: command is not correct
+	_, err := r.client.Do(ctx, "HMSET", shortLink.Key, "url", shortLink.OriginalURL, "expires", shortLink.Expires, "visits", shortLink.Visits).Result()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("cannot do the HMSET redis raw command: %w\n", err)
+	}
+
+	_, err = r.client.Do(ctx, "EXPIREAT", shortLink.Key, shortLink.Expires).Result()
+	if err != nil {
+		return "", fmt.Errorf("cannot do the EXPIREAT redis raw command: %w\n", err)
+
 	}
 
 	return shortLink.Key, nil
 }
 
-func (r *Redis) Load(ctx context.Context, key string) (string, error) {
+func (r Redis) Load(ctx context.Context, key string) (string, error) {
 
 	url, err := r.client.Do(ctx, "HGET", key, "url").Result()
 	if err != nil {
@@ -126,32 +110,61 @@ func (r *Redis) Load(ctx context.Context, key string) (string, error) {
 
 	return urlString, nil
 }
-func (r *Redis) isAvailable(ctx context.Context, key string) bool {
-	exists, err := r.client.Do(ctx, "EXISTS", key).Result()
-	if err != nil {
-		return false
-	}
 
-	// TODO: rest of the code should be refactored
-	res, ok := exists.(int)
-	if ok {
-		if res > 0 {
-			return true
-		}
-		return false
-	}
-	return false
-}
-
-func (r *Redis) LoadInfo(ctx context.Context, key string) (*entity.URL, error) {
+func (r Redis) LoadInfo(ctx context.Context, key string) (entity.URL, error) {
 
 	var shortLink entity.URL
 	// TODO: is binding all field of shortLink, or key is ignored
-	err := r.client.HGetAll(ctx, key).Scan(&shortLink)
-
+	//err := r.client.HGetAll(ctx, key).Scan(&shortLink)
+	sRes := r.client.HMGet(ctx, key, "url", "expires", "visits")
+	var link entity.URL
+	err := sRes.Scan(&link)
 	if err != nil {
-		return nil, fmt.Errorf("the key is not exitst: %w\n", err)
+		return entity.URL{}, fmt.Errorf("the key is not exitst: %w\n", err)
 	}
 
-	return &shortLink, nil
+	return shortLink, nil
 }
+
+func (r Redis) Close(ctx context.Context) error {
+	err := r.client.Close()
+	if err != nil {
+		return fmt.Errorf("cannot close connection: %w\n", err)
+	}
+
+	return nil
+}
+
+// func (r Redis) isKeyInDB(ctx context.Context, key string) (bool, error) {
+// 	exists, err := r.client.Do(ctx, "EXISTS", key).Result()
+// 	if err != nil {
+// 		// TODO: log the Error
+// 		return false, fmt.Errorf("cannot do EXISTS raw redis command: %w\n", err)
+// 	}
+// 	res, ok := exists.(int)
+// 	if ok {
+// 		if res > 0 {
+// 			return true, nil
+// 		}
+// 	}
+
+// 	// TODO: check the result
+// 	return false, nil
+// }
+
+// func (r Redis) isAvailable(ctx context.Context, key string) bool {
+// 	exists, err := r.client.Do(ctx, "EXISTS", key).Result()
+// 	if err != nil {
+// 		return false
+// 	}
+
+// 	// TODO: rest of the code should be refactored
+// 	res, ok := exists.(int)
+// 	if ok {
+// 		if res > 0 {
+// 			return true
+// 		}
+// 		return false
+// 	}
+// 	return false
+// }
