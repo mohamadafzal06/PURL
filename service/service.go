@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/mohamadafzal06/purl/param"
@@ -28,13 +27,21 @@ func (s Service) Short(ctx context.Context, sReq param.ShortRequest) (param.Shor
 
 	// short the requested url
 	url := sReq.URL
-	// TODO: check for Format of parsing
-	expires, err := time.Parse("2006-01-02 15:04:05.728046 +0300 EEST", sReq.Expiry)
+	t := time.Now().Add(time.Duration(sReq.Expiry) * time.Hour)
+
+	// Format the time as a string
+	timeStr := t.Format(time.RFC3339)
+	// Parse the string back into a time.Time value
+	parsedTime, err := time.Parse(time.RFC3339, timeStr)
 	if err != nil {
-		return param.ShortResponse{}, fmt.Errorf("cannot parse the expiration time: %w\n", err)
+		fmt.Println("Error parsing time:", err)
+		return param.ShortResponse{}, fmt.Errorf("Error parsing time: %w\n", err)
 	}
 
-	key, err := s.repo.Save(ctx, url, expires)
+	// Convert the time.Time to Unix timestamp
+	unixTimestamp := parsedTime.Unix()
+
+	key, err := s.repo.Save(ctx, url, unixTimestamp)
 	if err != nil {
 		return param.ShortResponse{}, fmt.Errorf("cannot short the url: %w\n", err)
 	}
@@ -69,7 +76,7 @@ func (s Service) GetLongInfo(ctx context.Context, lreq param.LongInfoRequest) (p
 	response = param.LongInfoResponse{
 		LongURL: shortLink.OriginalURL,
 		Expiry:  shortLink.Expires,
-		Visits:  strconv.Itoa(shortLink.Visits),
+		Visits:  shortLink.Visits,
 	}
 
 	return response, nil

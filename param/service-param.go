@@ -1,8 +1,9 @@
 package param
 
 type ShortRequest struct {
-	URL    string `json:"url"`
-	Expiry string `json:"expiry"`
+	URL string `json:"url"`
+	// Number of Hours from Now
+	Expiry int64 `json:"expiry"`
 }
 
 type ShortResponse struct {
@@ -21,6 +22,6 @@ type LongInfoRequest struct {
 }
 type LongInfoResponse struct {
 	LongURL string `json:"long_url"`
-	Expiry  string `json:"expiry"`
-	Visits  string `json:"visits"`
+	Expiry  int64  `json:"expiry"`
+	Visits  int    `json:"visits"`
 }

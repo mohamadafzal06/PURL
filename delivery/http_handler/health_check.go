@@ -4,22 +4,22 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/mohamadafzal06/purl/repository/postgres"
+	"github.com/mohamadafzal06/purl/repository/redis"
 )
 
 type Health struct {
-	db postgres.Postgres
+	r redis.Redis
 }
 
-func NewHealth() Health {
-	return Health{}
+func NewHealth(r redis.Redis) Health {
+	return Health{r: r}
 }
 
 func (h Health) HealthCheck(c echo.Context) error {
 	if c.Request().Method != http.MethodGet {
 		return echo.NewHTTPError(http.StatusBadRequest, echo.Map{"message": "Bad Request"})
 	}
-	err := h.db.Ping()
+	err := h.r.Ping(c.Request().Context())
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, echo.Map{"message": "Pinging the database failed"})
 	}

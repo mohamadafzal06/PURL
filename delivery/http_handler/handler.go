@@ -88,7 +88,7 @@ func (h Handler) LongInfo(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "cannot get infor of the original url"})
 	}
 	// TODO: check better response format
-	return c.JSON(http.StatusOK, echo.Map{"message": response})
+	return c.JSON(http.StatusOK, echo.Map{"url info": response})
 }
 
 func (h Handler) Register(g *echo.Group) {
