@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/mohamadafzal06/purl/config"
 	"github.com/mohamadafzal06/purl/entity"
 	"github.com/mohamadafzal06/purl/pkg/randomstring"
 	"github.com/redis/go-redis/v9"
@@ -26,15 +27,15 @@ type Redis struct {
 
 func New(cf Config) Redis {
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s:%d", cf.Host, cf.Port),
-		Password: cf.Password,
-		DB:       cf.DB,
+		Addr:     fmt.Sprintf("%s:%s", config.DatabaseHost, config.DatabasePort),
+		Password: config.DatabasePass,
 
 		// config for Pool
 		// 10
-		MaxIdleConns: cf.MaxIdleConns,
+		MaxIdleConns: config.DatabaseMaxConn,
+
 		// time.Duration(240 * time.Second)
-		ConnMaxIdleTime: cf.ConnMaxIdleTime,
+		ConnMaxIdleTime: config.DatabaseMaxConnTime,
 	})
 
 	return Redis{client: rdb}
