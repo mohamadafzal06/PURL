@@ -24,11 +24,5 @@ var databaseMaxConnTimeString = getEnv("PURL_DATABASE_MAX_CONN_TIME", "disable")
 var databaseMaxConnTimeInt, _ = strconv.Atoi(databaseMaxConnTimeString)
 var DatabaseMaxConnTime = time.Duration(databaseMaxConnTimeInt)
 
-type Config struct {
-	Host            string        `koanf:"host"`
-	Port            int           `koanf:"port"`
-	Password        string        `koanf:"password"`
-	DB              int           `koanf:"db"`
-	MaxIdleConns    int           `koanf:"max_idle_conns"`
-	ConnMaxIdleTime time.Duration `koanf:"conn_max_idle_time"`
-}
+var ServerSchema = getEnv("PURL_SERVER_SCHEMA", "localhost")
+var ServerHost = getEnv("PURL_SERVER_HOST", "1996")

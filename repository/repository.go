@@ -7,7 +7,7 @@ import (
 )
 
 type Repository interface {
-	Save(context.Context, string, int64) (string, error)
+	Save(context.Context, string, string, int64) error
 	Load(context.Context, string) (string, error)
 	LoadInfo(context.Context, string) (entity.URL, error)
 	Close(context.Context) error

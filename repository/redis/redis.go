@@ -4,28 +4,17 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/mohamadafzal06/purl/config"
 	"github.com/mohamadafzal06/purl/entity"
-	"github.com/mohamadafzal06/purl/pkg/randomstring"
 	"github.com/redis/go-redis/v9"
 )
-
-type Config struct {
-	Host            string        `koanf:"host"`
-	Port            int           `koanf:"port"`
-	Password        string        `koanf:"password"`
-	DB              int           `koanf:"db"`
-	MaxIdleConns    int           `koanf:"max_idle_conns"`
-	ConnMaxIdleTime time.Duration `koanf:"conn_max_idle_time"`
-}
 
 type Redis struct {
 	client *redis.Client
 }
 
-func New(cf Config) Redis {
+func New() Redis {
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%s:%s", config.DatabaseHost, config.DatabasePort),
 		Password: config.DatabasePass,
@@ -54,20 +43,7 @@ func (r Redis) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (r Redis) Save(ctx context.Context, url string, expires int64) (string, error) {
-	var key string
-	rg := randomstring.RandomGenerator{
-		Length: 6,
-	}
-
-	key = rg.RandomString()
-	// ok, err := r.isKeyInDB(ctx, key)
-	// if err != nil {
-	// 	return "", fmt.Errorf("cannot check the key is in redis or not: %w\n", err)
-	// }
-	// if !ok {
-	// 	key = rg.RandomString()
-	// }
+func (r Redis) Save(ctx context.Context, key, url string, expires int64) error {
 
 	// TODO: set expires.Format properly(dont hardcod)
 	shortLink := entity.URL{
@@ -80,16 +56,16 @@ func (r Redis) Save(ctx context.Context, url string, expires int64) (string, err
 	// TODO: command is not correct
 	_, err := r.client.Do(ctx, "HMSET", shortLink.Key, "url", shortLink.OriginalURL, "expires", shortLink.Expires, "visits", shortLink.Visits).Result()
 	if err != nil {
-		return "", fmt.Errorf("cannot do the HMSET redis raw command: %w\n", err)
+		return fmt.Errorf("cannot do the HMSET redis raw command: %w\n", err)
 	}
 
 	_, err = r.client.Do(ctx, "EXPIREAT", shortLink.Key, shortLink.Expires).Result()
 	if err != nil {
-		return "", fmt.Errorf("cannot do the EXPIREAT redis raw command: %w\n", err)
+		return fmt.Errorf("cannot do the EXPIREAT redis raw command: %w\n", err)
 
 	}
 
-	return shortLink.Key, nil
+	return nil
 }
 
 func (r Redis) Load(ctx context.Context, key string) (string, error) {
@@ -135,37 +111,3 @@ func (r Redis) Close(ctx context.Context) error {
 
 	return nil
 }
-
-// func (r Redis) isKeyInDB(ctx context.Context, key string) (bool, error) {
-// 	exists, err := r.client.Do(ctx, "EXISTS", key).Result()
-// 	if err != nil {
-// 		// TODO: log the Error
-// 		return false, fmt.Errorf("cannot do EXISTS raw redis command: %w\n", err)
-// 	}
-// 	res, ok := exists.(int)
-// 	if ok {
-// 		if res > 0 {
-// 			return true, nil
-// 		}
-// 	}
-
-// 	// TODO: check the result
-// 	return false, nil
-// }
-
-// func (r Redis) isAvailable(ctx context.Context, key string) bool {
-// 	exists, err := r.client.Do(ctx, "EXISTS", key).Result()
-// 	if err != nil {
-// 		return false
-// 	}
-
-// 	// TODO: rest of the code should be refactored
-// 	res, ok := exists.(int)
-// 	if ok {
-// 		if res > 0 {
-// 			return true
-// 		}
-// 		return false
-// 	}
-// 	return false
-// }

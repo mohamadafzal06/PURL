@@ -41,7 +41,9 @@ func (s Service) Short(ctx context.Context, sReq param.ShortRequest) (param.Shor
 	// Convert the time.Time to Unix timestamp
 	unixTimestamp := parsedTime.Unix()
 
-	key, err := s.repo.Save(ctx, url, unixTimestamp)
+	key := s.rg.RandomString()
+
+	err = s.repo.Save(ctx, key, url, unixTimestamp)
 	if err != nil {
 		return param.ShortResponse{}, fmt.Errorf("cannot short the url: %w\n", err)
 	}
