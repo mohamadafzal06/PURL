@@ -1,4 +1,4 @@
-package httpserver
+package httphandler
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
+	"github.com/mohamadafzal06/purl/config"
 	"github.com/mohamadafzal06/purl/param"
 )
 
@@ -22,10 +23,10 @@ type Handler struct {
 	service PurlService
 }
 
-func NewServer(schema, host string, srv PurlService) Handler {
+func NewServer(srv PurlService) Handler {
 	return Handler{
-		schema:  schema,
-		host:    host,
+		schema:  config.ServerSchema,
+		host:    config.ServerHost,
 		service: srv,
 	}
 }
