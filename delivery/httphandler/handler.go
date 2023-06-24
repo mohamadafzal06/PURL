@@ -43,6 +43,11 @@ func (h Handler) Short(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, echo.Map{"message": "the requsted url for shortning has problem"})
 	}
 
+	err = reqPram.ValidateShort()
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"message": "the requsted url for shortning has problem"})
+	}
+
 	sResp, err := h.service.Short(c.Request().Context(), *reqPram)
 	if err != nil {
 		// TODO: check other possible error
@@ -59,11 +64,16 @@ func (h Handler) Redirect(c echo.Context) error {
 	}
 
 	key := c.Param("key")
-	resPram := param.LongRequest{
+	reqPram := param.LongRequest{
 		Key: key,
 	}
 
-	sResp, err := h.service.GetLong(c.Request().Context(), resPram)
+	err := reqPram.ValidateLong()
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"message": "the requsted key for getting original url has problem"})
+	}
+
+	sResp, err := h.service.GetLong(c.Request().Context(), reqPram)
 	if err != nil {
 		// TODO: check other possible error
 		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "cannot get the original url"})
@@ -80,6 +90,11 @@ func (h Handler) LongInfo(c echo.Context) error {
 	key := c.Param("key")
 	reqPram := param.LongInfoRequest{
 		Key: key,
+	}
+
+	err := reqPram.ValidateLongInfo()
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"message": "the requsted key for getting info of original url has problem"})
 	}
 
 	response, err := h.service.GetLongInfo(c.Request().Context(), reqPram)
